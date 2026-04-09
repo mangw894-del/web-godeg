@@ -2,51 +2,56 @@
 include '../config.php';
 include '../auth.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+// Pastikan hanya admin yang bisa akses
+if($_SESSION['role'] != 'admin'){
+    die("Akses dilarang!");
 }
 
-if (!isset($_SESSION['login'])) {
-    echo "Akses ditolak";
-    exit;
-}
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // 1. Ambil data dari form dan amankan dari karakter aneh
+    $judul     = mysqli_real_escape_string($koneksi, $_POST['judul']);
+    $pengarang = mysqli_real_escape_string($koneksi, $_POST['pengarang']);
+    $penerbit  = mysqli_real_escape_string($koneksi, $_POST['penerbit']);
+    $tahun     = $_POST['tahun_terbit'];
+    $stok      = $_POST['stok'];
 
-if (isset($_POST['simpan'])) {
-
-    $judul = $_POST['judul'];
-    $pengarang = $_POST['pengarang'];
-    $penerbit = $_POST['penerbit'];
-    $tahun = $_POST['tahun_terbit'];
-    $stok = $_POST['stok'];
-
-    /* UPLOAD FOTO */
-    if ($_FILES['foto']['name'] != "") {
-
+    // 2. Cek apakah ada file foto yang diunggah
+    if (isset($_FILES['foto']) && $_FILES['foto']['error'] == 0) {
         $nama_file = $_FILES['foto']['name'];
-        $tmp = $_FILES['foto']['tmp_name'];
-
-        // biar gak ketimpa
+        $tmp       = $_FILES['foto']['tmp_name'];
+        
+        // Buat nama unik supaya file tidak tertumpuk jika namanya sama
         $nama_baru = time() . '_' . $nama_file;
+        $path      = "../upload/" . $nama_baru;
 
-        move_uploaded_file($tmp, "../upload/" . $nama_baru);
+        // Pindahkan file ke folder upload
+        if (move_uploaded_file($tmp, $path)) {
+            
+            // 3. Masukkan data ke tabel buku
+            $sql = "INSERT INTO buku (judul, pengarang, penerbit, tahun_terbit, stok, foto) 
+                    VALUES ('$judul', '$pengarang', '$penerbit', '$tahun', '$stok', '$nama_baru')";
+            
+            if (mysqli_query($koneksi, $sql)) {
+                
+                // 4. CATAT LOG AKTIVITAS (Biar muncul di Laporan)
+                // Kita pakai fungsi catat_log yang tadi sudah dibuat di config.php
+                catat_log($koneksi, "Menambah buku baru: $judul", "Buku");
 
-        $foto = $nama_baru;
-
+                // Lempar balik ke halaman data buku dengan status sukses
+                header("Location: data_buku.php?status=sukses");
+                exit;
+            } else {
+                echo "Gagal menyimpan data ke database: " . mysqli_error($koneksi);
+            }
+        } else {
+            echo "Gagal mengunggah foto ke folder tujuan.";
+        }
     } else {
-        $foto = NULL;
+        echo "Harap pilih foto buku terlebih dahulu.";
     }
-
-    /* INSERT + FOTO */
-    $query = "INSERT INTO buku 
-    (judul, pengarang, penerbit, tahun_terbit, stok, foto)
-    VALUES 
-    ('$judul', '$pengarang', '$penerbit', '$tahun', '$stok', '$foto')";
-
-    if (mysqli_query($koneksi, $query)) {
-        header("Location: data_buku.php");
-        exit;
-    } else {
-        echo "Gagal menambahkan data!";
-    }
+} else {
+    // Jika diakses tanpa submit form, kembalikan ke form tambah
+    header("Location: tambah_buku.php");
+    exit;
 }
 ?>

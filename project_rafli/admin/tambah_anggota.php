@@ -1,7 +1,6 @@
 <?php
 include '../config.php';
 include '../auth.php';
-include 'log.php';
 
 if($_SESSION['role']!='admin'){
   die("Akses ditolak!");
@@ -13,9 +12,6 @@ if(isset($_POST['simpan'])){
   $r = $_POST['role'];
 
   mysqli_query($koneksi,"INSERT INTO users VALUES('','$u','$p','$r')");
-
-  // TAMBAH LOG
-  logAktivitas($koneksi, $_SESSION['user'], "Menambahkan anggota: $u");
 
   echo "<script>alert('Berhasil ditambahkan!');window.location='data_anggota.php';</script>";
 }
@@ -137,9 +133,10 @@ button:hover{
     <a href="dashboard_admin.php">Dashboard</a>
     <a href="data_buku.php">Data Buku</a>
     <a href="tambah_buku.php">Tambah Buku</a>
-    <a href="riwayat_buku.php">Riwayat Buku</a>
+    <a href="riwayat_peminjaman.php">Riwayat Peminjaman</a>
     <a href="data_anggota.php">Data Anggota</a>
     <a href="tambah_anggota.php">Tambah Anggota</a>
+    <a href="laporan_aktivitas.php" class="active">Laporan Aktivitas</a>
     <a href="../logout.php" class="logout">Logout</a>
   </div>
 

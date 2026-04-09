@@ -11,7 +11,6 @@ if (!isset($_SESSION['login'])) {
     exit;
 }
 
-/* SEARCH */
 $search = "";
 if (isset($_GET['search'])) {
     $search = $_GET['search'];
@@ -51,7 +50,7 @@ body{
   min-height:100vh;
 }
 
-/* SIDEBAR (BIAR NYAMBUNG) */
+/* SIDEBAR */
 .sidebar{
   width:260px;
   background:#1e3c72;
@@ -225,10 +224,10 @@ body{
           <p><b>Penerbit:</b> <?= $row['penerbit']; ?></p>
           <p><b>Tahun:</b> <?= $row['tahun_terbit']; ?></p>
           <p><b>Stok:</b> <?= $row['stok']; ?></p>
-
+  
           <div class="aksi">
-            <a href="edit.php?id=<?= $row['id']; ?>">Edit</a>
-            <a href="hapus.php?id=<?= $row['id']; ?>" onclick="return confirm('Yakin hapus?')">Hapus</a>
+            <a href="edit_buku.php?id=<?= $row['id']; ?>">Edit</a>
+            <a href="hapus_buku.php?id=<?= $row['id']; ?>" onclick="return confirm('Yakin hapus?')">Hapus</a>
           </div>
         </div>
       </div>
