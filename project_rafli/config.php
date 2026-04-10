@@ -10,7 +10,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 function catat_log($koneksi, $aksi, $kategori) {
-    $nama = isset($_SESSION['username']) ? $_SESSION['username'] : 'Sistem/Guest';
+    $nama = isset($_SESSION['username']) ? $_SESSION['username'] : 'Member';
     
     $aksi_safe = mysqli_real_escape_string($koneksi, $aksi);
     

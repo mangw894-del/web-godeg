@@ -27,10 +27,11 @@ $d = mysqli_fetch_array($query);
 if(isset($_POST['update'])){
     $username = mysqli_real_escape_string($koneksi, $_POST['username']);
     $role     = $_POST['role'];
+    $pelaku   = $_SESSION['username'];
     
     // Cek apakah password diganti atau tidak
     if(!empty($_POST['password'])){
-        $password = md5($_POST['password']); // Pakai md5 biar sinkron sama login.php abang
+        $password = password_hash($_POST['password'], PASSWORD_DEFAULT); // Pakai password_hash biar aman & sinkron
         $sql = "UPDATE users SET username='$username', password='$password', role='$role' WHERE id='$id'";
     } else {
         $sql = "UPDATE users SET username='$username', role='$role' WHERE id='$id'";
@@ -39,8 +40,10 @@ if(isset($_POST['update'])){
     $eksekusi = mysqli_query($koneksi, $sql);
 
     if($eksekusi){
-        // CATAT LOG (Pakai fungsi catat_log dari config.php)
-        catat_log($koneksi, "Mengubah data anggota: $username", "User");
+        // CATAT LOG OTOMATIS
+        $aktivitas = "Mengubah data anggota: $username (Role: $role)";
+        mysqli_query($koneksi, "INSERT INTO log_aktivitas (nama_pelaku, aktivitas, waktu) 
+                                VALUES ('$pelaku', '$aktivitas', NOW())");
         
         echo "<script>
                 alert('Data berhasil diupdate!'); 
@@ -48,7 +51,7 @@ if(isset($_POST['update'])){
               </script>";
         exit;
     } else {
-        echo "Gagal update: " . mysqli_error($koneksi);
+        echo "<script>alert('Gagal update data!');</script>";
     }
 }
 ?>
@@ -58,151 +61,171 @@ if(isset($_POST['update'])){
 <head>
     <meta charset="UTF-8">
     <title>Edit Anggota - Admin Panel</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        /* CSS RAPI KE BAWAH */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
+        /* STYLE KONSISTEN SESUAI DASHBOARD */
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Poppins',sans-serif; }
 
         body {
             min-height: 100vh;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            background: #f4f7fe;
         }
 
-        .wrapper {
-            display: flex;
-            min-height: 100vh;
-        }
+        .wrapper { display: flex; min-height: 100vh; }
 
-        /* SIDEBAR STYLE */
+        /* SIDEBAR KONSISTEN */
         .sidebar {
-            width: 260px;
-            background: rgba(0, 0, 0, .25);
-            backdrop-filter: blur(10px);
-            color: white;
+            width: 270px;
+            background: #1a1c2e;
+            color: #a0aec0;
             padding: 30px 20px;
-            position: fixed;
             height: 100vh;
+            position: fixed;
+            left: 0; top: 0;
         }
 
         .sidebar h3 {
             text-align: center;
-            margin-bottom: 30px;
+            color: #fff;
+            font-size: 20px;
+            letter-spacing: 2px;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 20px;
         }
 
         .sidebar a {
             display: block;
-            padding: 12px;
-            color: white;
+            padding: 14px 18px;
+            color: #cbd5e0;
             text-decoration: none;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            transition: 0.3s;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
         }
 
-        .sidebar a:hover, 
-        .sidebar a.active {
-            background: rgba(255, 255, 255, .2);
+        .sidebar a:hover, .sidebar a.active {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
         }
 
         .sidebar .logout {
-            background: #e74a3b;
-            text-align: center;
-            margin-top: 20px;
+            background: rgba(231, 74, 59, 0.15); 
+            color: #ff7675; 
+            margin-top: 30px;
+            text-align: left;
+            border: 1px solid rgba(231, 74, 59, 0.2);
         }
 
-        /* CONTENT STYLE */
+        .sidebar .logout:hover {
+            background: rgba(231, 74, 59, 0.25);
+            color: white;
+        }
+
+        /* CONTENT AREA */
         .content {
             flex: 1;
-            padding: 30px;
-            margin-left: 260px;
+            padding: 40px;
+            margin-left: 270px;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
         }
 
         .container {
             background: white;
-            padding: 40px;
-            border-radius: 15px;
-            width: 100%;
+            padding: 35px;
+            border-radius: 20px;
             max-width: 500px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            margin-top: 50px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            border: 1px solid #edf2f7;
+            height: fit-content;
         }
 
         h2 {
             margin-bottom: 25px;
-            color: #2a5298;
+            color: #2d3748;
+            font-weight: 700;
             text-align: center;
         }
 
         /* FORM STYLE */
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
+        label {
             display: block;
-            margin-bottom: 8px;
+            margin-top: 15px;
+            font-size: 13px;
             font-weight: 600;
-            color: #333;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .form-group input, 
-        .form-group select {
+        input, select {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: 12px 15px;
+            margin-top: 8px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
             outline: none;
+            transition: 0.3s;
+            background: #f8fafc;
+            font-size: 14px;
         }
 
-        .form-group input:focus {
-            border-color: #2a5298;
+        input:focus, select:focus {
+            border-color: #4e73df;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.1);
         }
 
-        /* BUTTON STYLE */
-        .btn-box {
+        .btn-group {
             display: flex;
             gap: 10px;
-            margin-top: 10px;
+            margin-top: 30px;
         }
 
-        .btn-simpan {
+        button {
             flex: 2;
-            padding: 12px;
-            background: #2a5298;
-            color: white;
+            padding: 14px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
             font-weight: 600;
+            font-size: 16px;
             cursor: pointer;
             transition: 0.3s;
         }
 
-        .btn-simpan:hover {
-            background: #1e3c72;
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(78, 115, 223, 0.3);
         }
 
         .btn-batal {
             flex: 1;
-            padding: 12px;
-            background: #eee;
-            color: #333;
-            text-decoration: none;
+            padding: 14px;
+            background: #f1f5f9;
+            color: #64748b;
             text-align: center;
-            border-radius: 8px;
-            font-size: 14px;
+            text-decoration: none;
+            border-radius: 12px;
             font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+
+        .btn-batal:hover { background: #e2e8f0; }
+
+        small {
+            display: block;
+            margin-top: 5px;
+            color: #a0aec0;
+            font-size: 11px;
         }
     </style>
 </head>
@@ -226,28 +249,21 @@ if(isset($_POST['update'])){
             <h2>Edit Data Anggota</h2>
             
             <form method="POST">
-                <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" name="username" value="<?= htmlspecialchars($d['username']) ?>" required>
-                </div>
+                <label>Username</label>
+                <input type="text" name="username" value="<?= htmlspecialchars($d['username']) ?>" required>
 
-                <div class="form-group">
-                    <label>Role</label>
-                    <select name="role" required>
-                        <option value="admin" <?= ($d['role'] == 'admin') ? 'selected' : '' ?>>Admin</option>
-                        <option value="member" <?= ($d['role'] == 'member') ? 'selected' : '' ?>>Member</option>
-                        <option value="user" <?= ($d['role'] == 'user') ? 'selected' : '' ?>>User</option>
-                    </select>
-                </div>
+                <label>Hak Akses (Role)</label>
+                <select name="role" required>
+                    <option value="admin" <?= ($d['role'] == 'admin') ? 'selected' : '' ?>>Admin</option>
+                    <option value="user" <?= ($d['role'] == 'user') ? 'selected' : '' ?>>User</option>
+                </select>
 
-                <div class="form-group">
-                    <label>Password Baru</label>
-                    <input type="password" name="password" placeholder="Isi hanya jika ingin ganti password">
-                    <small style="color: #666; font-size: 11px;">*Kosongkan jika tidak ingin mengubah password</small>
-                </div>
+                <label>Password Baru</label>
+                <input type="password" name="password" placeholder="Isi jika ingin ganti password">
+                <small>*Kosongkan jika tidak ingin mengubah password</small>
 
-                <div class="btn-box">
-                    <button type="submit" name="update" class="btn-simpan">Simpan Perubahan</button>
+                <div class="btn-group">
+                    <button type="submit" name="update">Simpan</button>
                     <a href="data_anggota.php" class="btn-batal">Batal</a>
                 </div>
             </form>
